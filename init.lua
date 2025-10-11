@@ -160,18 +160,18 @@ function M.init()
 		version = "0.1.0",
 		author = "YAL",
 		commands = {
-			{ name = "spotify_play_pause", description = "Play / pause" },
-			{ name = "spotify_next", description = "Next track" },
-			{ name = "spotify_previous", description = "Previous track" },
-			{ name = "spotify_volume_up", description = "Volume +6" },
-			{ name = "spotify_volume_down", description = "Volume -6" },
-			{ name = "spotify_volume_mute_toggle", description = "Mute / restore volume" },
-			{ name = "spotify_shuffle_toggle", description = "Toggle shuffle" },
-			{ name = "spotify_repeat_toggle", description = "Toggle repeat all" },
-			{ name = "spotify_repeat_one_toggle", description = "Toggle repeat one" },
-			{ name = "spotify_seek_forward", description = "Seek +10 seconds" },
-			{ name = "spotify_seek_back", description = "Seek -10 seconds" },
-			{ name = "spotify_play_clipboard_uri", description = "Play URI from clipboard (spotify:...)" },
+			{ name = "play pause", description = "Play / pause" },
+			{ name = "next", description = "Next track" },
+			{ name = "previous", description = "Previous track" },
+			{ name = "volume up", description = "Volume +6" },
+			{ name = "volume down", description = "Volume -6" },
+			{ name = "volume mute toggle", description = "Mute / restore volume" },
+			{ name = "shuffle toggle", description = "Toggle shuffle" },
+			{ name = "repeat toggle", description = "Toggle repeat all" },
+			{ name = "repeat one toggle", description = "Toggle repeat one" },
+			{ name = "seek forward", description = "Seek +10 seconds" },
+			{ name = "seek back", description = "Seek -10 seconds" },
+			{ name = "play clipboard uri", description = "Play URI from clipboard (spotify:...)" },
 		},
 	}
 end
@@ -186,29 +186,29 @@ function M.execute(req)
 	ensure_spotify()
 
 	local ok = false
-	if cmd == "spotify_play_pause" then
+	if cmd == "play_pause" then
 		ok = run_osa(osa_play_pause)
-	elseif cmd == "spotify_next" then
+	elseif cmd == "next" then
 		ok = run_osa(osa_next)
-	elseif cmd == "spotify_previous" then
+	elseif cmd == "previous" then
 		ok = run_osa(osa_prev)
-	elseif cmd == "spotify_volume_up" then
+	elseif cmd == "volume up" then
 		ok = run_osa(osa_volume_set, { tostring(clamp(100, 0, 100)) }) -- placeholder, overwritten below
-	elseif cmd == "spotify_volume_down" then
+	elseif cmd == "volume down" then
 		ok = run_osa(osa_volume_set, { tostring(clamp(0, 0, 100)) }) -- placeholder, overwritten below
-	elseif cmd == "spotify_volume_mute_toggle" then
+	elseif cmd == "volume mute toggle" then
 		ok = spotify_volume_mute_toggle()
-	elseif cmd == "spotify_shuffle_toggle" then
+	elseif cmd == "shuffle toggle" then
 		ok = run_osa(osa_shuffle_toggle)
-	elseif cmd == "spotify_repeat_toggle" then
+	elseif cmd == "repeat toggle" then
 		ok = run_osa(osa_repeat_toggle)
-	elseif cmd == "spotify_repeat_one_toggle" then
+	elseif cmd == "repeat one toggle" then
 		ok = run_osa(osa_repeat_one_toggle)
-	elseif cmd == "spotify_seek_forward" then
+	elseif cmd == "seek forward" then
 		ok = run_osa(osa_seek_rel, { "10" })
-	elseif cmd == "spotify_seek_back" then
+	elseif cmd == "seek back" then
 		ok = run_osa(osa_seek_rel, { "-10" })
-	elseif cmd == "spotify_play_clipboard_uri" then
+	elseif cmd == "play clipboard uri" then
 		ok = run_osa(osa_play_clipboard_uri)
 	else
 		return { hide = false }
