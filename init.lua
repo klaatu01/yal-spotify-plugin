@@ -160,7 +160,7 @@ function M.init()
 		version = "0.1.0",
 		author = "YAL",
 		commands = {
-			{ name = "play pause", description = "Play / pause" },
+			{ name = "play/pause", description = "Play / pause" },
 			{ name = "next", description = "Next track" },
 			{ name = "previous", description = "Previous track" },
 			{ name = "volume up", description = "Volume +6" },
@@ -186,7 +186,7 @@ function M.execute(req)
 	ensure_spotify()
 
 	local ok = false
-	if cmd == "play_pause" then
+	if cmd == "play/pause" then
 		ok = run_osa(osa_play_pause)
 	elseif cmd == "next" then
 		ok = run_osa(osa_next)
