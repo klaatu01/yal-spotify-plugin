@@ -2,13 +2,13 @@
 local M = {}
 
 -- Host deps exposed by your Rust preloads
-local http = require("host.http")
-local json = require("host.json")
-local b64 = require("host.base64")
-local log = require("host.log")
-local ui = require("host.ui")
-local socket = require("host.socket")
-local dbmod = require("host.db")
+local http = require("yal.http")
+local json = require("yal.json")
+local b64 = require("yal.base64")
+local log = require("yal.log")
+local ui = require("yal.ui")
+local socket = require("yal.socket")
+local dbmod = require("yal.db")
 
 -- persistent store for this plugin
 local DB = dbmod.open("spotify")
