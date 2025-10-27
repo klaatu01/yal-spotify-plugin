@@ -162,40 +162,53 @@ local osa_play_uri = [[
 
 local function volume_popup(current)
 	local vol = clamp(current, 0, 100)
-	return {
-		hide = false,
-		popup = {
-			title = "Spotify Volume",
-			ui_schema_version = 1,
-			content = {
-				{
-					type = "form",
-					name = "volume",
-					submit_on_enter = true,
-					submit_label = "Set",
-					fields = {
-						{
-							kind = "slider",
-							name = "vol",
-							label = "Volume",
-							min = 0,
-							max = 100,
-							step = 10,
-							value = vol,
-							show_value = true,
-						},
-					},
-					submit = {
-						kind = "command",
-						plugin = "spotify",
-						command = "volume_apply",
-						presentation = "close_popup",
-						args = {},
+	local p = ui.prompt({
+		title = "Spotify Volume",
+		ui_schema_version = 1,
+		content = {
+			{
+				type = "form",
+				name = "volume",
+				fields = {
+					{
+						kind = "slider",
+						name = "vol",
+						label = "Volume",
+						min = 0,
+						max = 100,
+						step = 10,
+						value = vol,
+						show_value = true,
 					},
 				},
+				submit = {
+					kind = "command",
+					plugin = "spotify",
+					command = "volume_apply",
+					presentation = "close_popup",
+					args = {},
+				},
 			},
-			actions = {},
 		},
+	})
+
+	while true do
+		local state = p:state()
+		log.info("Volume popup state:")
+		log.info(json.encode(state))
+		if state == nil then
+			break
+		elseif state.vol ~= nil then
+			log.info("Volume slider changed to " .. tostring(state.vol))
+			vol = clamp(state.vol, 0, 100)
+			run_osa(osa_volume_set, { tostring(vol) })
+		end
+	end
+
+	p:submission()
+
+	return {
+		hide = false,
 	}
 end
 
@@ -203,25 +216,19 @@ local function info_popup(now)
 	local name = now and now.name or nil
 	local artist = now and now.artist or ""
 	local album = now and now.album or ""
-	local state = now and now.state or ""
 
-	local md
-	if name and name ~= "" then
-		md = ("**%s**\n\n%s\n%s\n\n_%s_"):format(name, artist, album, state)
-	else
-		md = "_Not playing_"
-	end
+	ui.prompt({
+		title = "Spotify Info",
+		ui_schema_version = 1,
+		content = {
+			{ type = "markdown", md = "title : " .. name },
+			{ type = "markdown", md = "artist: " .. artist },
+			{ type = "markdown", md = "album : " .. album },
+		},
+	}):submission()
 
 	return {
 		hide = false,
-		popup = {
-			title = "Spotify Info",
-			ui_schema_version = 1,
-			content = { { type = "markdown", md = md } },
-			actions = {
-				{ kind = "command", plugin = "spotify", command = "close", presentation = "close_popup", args = {} },
-			},
-		},
 	}
 end
 
@@ -467,12 +474,178 @@ local function wait_for_code_on(port, expected_state, timeout_s)
 	local code = urld(q.code)
 	local state = urld(q.state)
 	local ok = (state == expected_state)
-	local body = ok and "OK, you can close this tab." or "State mismatch."
+
+	-- Minimal, professional HTML pages (dark theme)
+	local success_body = [[
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Authentication Complete</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --card: #11161d;
+    --text: #e6eaf2;
+    --muted: #9aa4b2;
+    --border: #1f2a37;
+    --accent: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .wrap {
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 680px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .check {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(34,197,94,0.15);
+    border: 1px solid rgba(34,197,94,0.35);
+    color: var(--accent);
+    border-radius: 999px;
+  }
+  h1 {
+    font-size: 20px;
+    margin: 0;
+    letter-spacing: .2px;
+  }
+  p {
+    margin: 8px 0 0 0;
+    color: var(--muted);
+  }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    background: #0b1218;
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 6px;
+    color: var(--text);
+  }
+  .footer {
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--muted);
+    opacity: .9;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="status" aria-live="polite">
+      <div class="header">
+        <span class="check" aria-hidden="true">✓</span>
+        <h1>You're all set</h1>
+      </div>
+      <p><code>yal-spotify-plugin</code> is now authenticated. You can open <strong>yal</strong> again to complete the authentication process. Feel free to close this tab.</p>
+      <div class="footer">This window will not refresh automatically.</div>
+    </div>
+  </div>
+</body>
+</html>
+]]
+
+	local error_body = [[
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Authentication Error</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --card: #11161d;
+    --text: #e6eaf2;
+    --muted: #9aa4b2;
+    --border: #1f2a37;
+    --accent: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans";
+  }
+  .wrap {
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 680px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+  .header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .x {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(239,68,68,0.15);
+    border: 1px solid rgba(239,68,68,0.35);
+    color: var(--accent);
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  p { margin: 8px 0 0 0; color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="alert">
+      <div class="header">
+        <span class="x" aria-hidden="true">×</span>
+        <h1>State mismatch</h1>
+      </div>
+      <p>We couldn't verify this request. Please return to the app and try linking again.</p>
+    </div>
+  </div>
+</body>
+</html>
+]]
+
+	local body = ok and success_body or error_body
 
 	client:send(
 		"HTTP/1.1 "
 			.. (ok and "200 OK" or "400 Bad Request")
-			.. "\r\nContent-Type: text/plain\r\nContent-Length: "
+			.. "\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: "
 			.. #body
 			.. "\r\n\r\n"
 			.. body
@@ -582,6 +755,9 @@ local function get_user_token()
 
 	open_browser(url)
 	local code, err = wait_for_code_on(port, state, 180)
+
+	ui.visibility():show()
+
 	if not code then
 		return nil, err or "auth failed"
 	end
@@ -628,7 +804,7 @@ end
 -- -----------------------------------------------------------------------------
 
 local function search_flow(prefill)
-	local query_prompt = ui.prompt({
+	local p = ui.prompt({
 		title = "Spotify Search",
 		ui_schema_version = 1,
 		content = {
@@ -648,18 +824,21 @@ local function search_flow(prefill)
 		},
 	})
 
-	local query = (query_prompt and query_prompt.query) or ""
+	local submission = p:submission()
+
+	local query = (submission and submission.query) or ""
 	if query:gsub("%s+", "") == "" then
 		return { hide = true }
 	end
 
 	local cc_at, terr = cc_get_token()
 	if not cc_at then
-		ui.prompt({
+		local p_err = ui.prompt({
 			title = "Spotify API credentials required",
 			ui_schema_version = 1,
 			content = { { type = "markdown", md = "_Error:_ " .. tostring(terr) } },
 		})
+		p_err:submission()
 		return { hide = false }
 	end
 
@@ -680,7 +859,9 @@ local function search_flow(prefill)
 		},
 	})
 
-	local uri = select_prompt and select_prompt.choice and select_prompt.choice.uri
+	local select_prompt_submission = select_prompt:submission()
+
+	local uri = select_prompt_submission and select_prompt_submission.choice and select_prompt_submission.choice.uri
 	if not (uri and uri:match("^spotify:")) then
 		return { hide = true }
 	end
@@ -764,14 +945,14 @@ function M.execute(req)
 				title = "Spotify Connect Error",
 				ui_schema_version = 1,
 				content = { { type = "markdown", md = ("_Error:_ %s"):format(tostring(err)) } },
-			})
+			}):submission()
 			return { hide = false }
 		end
 		ui.prompt({
 			title = "Spotify Connected",
 			ui_schema_version = 1,
 			content = { { type = "markdown", md = "Your account is connected. You can close this." } },
-		})
+		}):submission()
 		return { hide = false }
 	end
 
